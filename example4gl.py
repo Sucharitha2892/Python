@@ -14,16 +14,17 @@ print("Starting POC - "+datetime.today().strftime('%Y-%m-%d ')+datetime.today().
 #creating connection to bigquery
 print("creating connection to bigquery - "+datetime.today().strftime('%Y-%m-%d ')+datetime.today().strftime('%H:%M:%S'))
 credentials = service_account.Credentials.from_service_account_file(
-'/opt/poc_fidw_4gl/secrets/hsbc-245009-fidwmx-dev-86f7a115d53e.json')
+'')
 
-project_id = 'hsbc-245009-fidwmx-dev'
-dataset = 'bdtesmul2gcp'
-table = 'murex_t'
-temp_table = 'tmurex_t'
+project_id = ''
+dataset = ''
+table = ''
+temp_table = ''
 table_id = """{}.{}.{}""".format(project_id,dataset,table)
 temp_table_id = """{}.{}.{}""".format(project_id,dataset,temp_table)
 output_file = 'LPMXMRXLM185D00021_MUREX.txt'
 client = bigquery.Client(credentials= credentials,project=project_id)
+inputfile = ''
 
 #Start Getting temp table fields
 bqstorageclient = bigquery_storage.BigQueryReadClient(credentials=credentials)
@@ -57,9 +58,9 @@ if '_PARTITIONTIME' in field_names:
 print("Reading file from google storage - "+datetime.today().strftime('%Y-%m-%d ')+datetime.today().strftime('%H:%M:%S'))
 try:
     storage_client = storage.Client(credentials= credentials,project=project_id)
-    bucket_name = 'bucket-hsbc-fidw245009-ingest-data-main-dev'
+    bucket_name = 'bucketname'
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.get_blob('fidw_20201102_POC.prn')
+    blob = bucket.get_blob('inputfile')
     downloaded_blob = blob.download_as_string()
 except:
     print('*** ¡No file exists! ***')
@@ -70,7 +71,7 @@ layout = len(df.columns)
 vacio = len(df.index)
 
 #Validating file layout
-if layout != 138:
+if layout != len(field_names):
     raise Exception("*** ¡There is an error in the file layout! ***")
 else:
     print("The layout of the file is correct")
@@ -113,8 +114,8 @@ query_string = """
 SELECT
 *
 FROM
-`hsbc-245009-fidwmx-dev`.{}.{}
-""".format(dataset,temp_table)
+{}
+""".format(temp_table_id)
 
 df = (
     client.query(query_string)
@@ -215,10 +216,10 @@ query_string = """
 SELECT
 column_name
 FROM
-`hsbc-245009-fidwmx-dev`.{}.INFORMATION_SCHEMA.COLUMNS
+{}
 WHERE
 table_name="{}"
-""".format(dataset,table)
+""".format(table_id)
 
 column_names = (
     client.query(query_string)
@@ -294,7 +295,7 @@ print("Query results loaded to the table {}".format(final_table))
 
 #Creating the file to send to GREP
 print("Creating the file to Send to GREP - "+datetime.today().strftime('%Y-%m-%d ')+datetime.today().strftime('%H:%M:%S'))
-bucket_name = 'bucket-hsbc-fidw245009-ingest-rr-data-main-dev'
+bucket_name = 'bucket'
 
 destination_uri = "gs://{}/{}".format(bucket_name, output_file)
 dataset_ref = bigquery.DatasetReference(project_id, dataset)
